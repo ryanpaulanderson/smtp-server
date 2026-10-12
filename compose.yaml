@@ -1,0 +1,179 @@
+x-tooling: &tooling
+  image: ${COMPOSE_PROJECT_NAME:-encrypted-email}-tooling
+  build:
+    context: .
+    target: test-tooling
+  networks: [test]
+
+x-app: &app
+  image: ${COMPOSE_PROJECT_NAME:-encrypted-email}-production
+  build:
+    context: .
+    target: production
+  environment:
+    APP_ENV: test
+    MCP_RESOURCE_URL: http://app-a:3000/mcp
+    OAUTH_ISSUER_URL: https://auth-fixture:8443
+    OAUTH_JWKS_URL: https://auth-fixture:8443/jwks.json
+    OWNER_SUBJECT: test-owner
+    MAIL_FROM: sender@localhost
+    MAIL_TO: recipient@localhost
+    SMTP_HOST: mailpit
+    SMTP_PORT: "1025"
+    SMTP_USERNAME: test-user
+    SMTP_PASSWORD_FILE: /fixtures/app/smtp-password
+    SMTP_CA_FILE: /fixtures/app/ca.crt
+    PGP_PUBLIC_KEY_FILE: /fixtures/app/recipient-public.asc
+    PGP_FINGERPRINT_FILE: /fixtures/app/recipient-fingerprint
+    DATABASE_URL_FILE: /fixtures/app/database-url
+    REQUEST_HMAC_KEYS_FILE: /fixtures/app/hmac-keys.json
+    REQUEST_HMAC_CURRENT_KEY: v1
+    SEND_ENABLED: "true"
+    NODE_EXTRA_CA_CERTS: /fixtures/app/ca.crt
+  volumes:
+    - app-fixtures:/fixtures/app:ro
+  networks: [test]
+  depends_on:
+    migrate: { condition: service_completed_successfully }
+    mailpit: { condition: service_healthy }
+    auth-fixture: { condition: service_healthy }
+  healthcheck:
+    test:
+      [
+        CMD,
+        /nodejs/bin/node,
+        -e,
+        "fetch('http://127.0.0.1:3000/.well-known/oauth-protected-resource').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+      ]
+    interval: 2s
+    timeout: 3s
+    retries: 40
+    start_period: 5s
+
+services:
+  workflow-lint:
+    image: rhysd/actionlint:1.7.12@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667
+    profiles: [tools]
+    network_mode: none
+    working_dir: /repo
+    volumes:
+      - .:/repo:ro
+
+  fixture-init:
+    <<: *tooling
+    command: [node, tests/fixtures/generate.mjs]
+    volumes:
+      - app-fixtures:/fixtures/app
+      - smtp-fixtures:/fixtures/smtp
+      - auth-fixtures:/fixtures/auth
+      - postgres-fixtures:/fixtures/postgres
+      - runner-fixtures:/fixtures/runner
+
+  postgres:
+    image: postgres:17.11-bookworm@sha256:3645570cccdfa447589da9f57dd740faa29b30938e861289a5574b6ca6b03826
+    environment:
+      POSTGRES_DB: email_mcp
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD_FILE: /fixtures/postgres/password
+    volumes:
+      - postgres-fixtures:/fixtures/postgres:ro
+      - postgres-data:/var/lib/postgresql/data
+    networks: [test]
+    depends_on:
+      fixture-init: { condition: service_completed_successfully }
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U postgres -d email_mcp]
+      interval: 2s
+      timeout: 3s
+      retries: 40
+
+  migrate:
+    <<: *tooling
+    command: [node, --import, tsx, tests/fixtures/migrate.ts]
+    volumes:
+      - app-fixtures:/fixtures/app:ro
+      - runner-fixtures:/fixtures/runner:ro
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  auth-fixture:
+    <<: *tooling
+    command: [node, tests/fixtures/auth-server.mjs]
+    volumes:
+      - auth-fixtures:/fixtures/auth:ro
+    depends_on:
+      fixture-init: { condition: service_completed_successfully }
+    healthcheck:
+      test:
+        [
+          CMD,
+          node,
+          -e,
+          "require('https').get('https://localhost:8443/.well-known/oauth-authorization-server',{ca:require('fs').readFileSync('/fixtures/auth/ca.crt')},r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))",
+        ]
+      interval: 2s
+      timeout: 3s
+      retries: 40
+
+  mailpit:
+    image: axllent/mailpit:v1.31.5@sha256:94f6b70c1436defae6799d9ac7ff0eeff9540465b842026d5cdb018f1c0234ea
+    environment:
+      MP_SMTP_TLS_CERT: /fixtures/smtp/server.crt
+      MP_SMTP_TLS_KEY: /fixtures/smtp/server.key
+      MP_SMTP_REQUIRE_STARTTLS: "true"
+      MP_SMTP_AUTH_FILE: /fixtures/smtp/auth
+      MP_SMTP_AUTH_ACCEPT_ANY: "false"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "false"
+      MP_SMTP_ALLOWED_RECIPIENTS: ^recipient@localhost$$
+      MP_SMTP_MAX_RECIPIENTS: "1"
+      MP_SMTP_IGNORE_REJECTED_RECIPIENTS: "false"
+      MP_IGNORE_DUPLICATE_IDS: "false"
+      MP_SMTP_STRICT_RFC_HEADERS: "true"
+      MP_SMTP_DISABLE_RDNS: "true"
+      MP_DISABLE_VERSION_CHECK: "true"
+      MP_BLOCK_REMOTE_CSS_AND_FONTS: "true"
+      MP_QUIET: "true"
+    volumes:
+      - smtp-fixtures:/fixtures/smtp:ro
+    networks: [test]
+    depends_on:
+      fixture-init: { condition: service_completed_successfully }
+    healthcheck:
+      test: [CMD, /mailpit, readyz]
+      interval: 2s
+      timeout: 3s
+      retries: 40
+
+  app-a:
+    <<: *app
+  app-b:
+    <<: *app
+
+  test-runner:
+    <<: *tooling
+    command: [node, tests/fixtures/run-tests.mjs]
+    environment:
+      TEST_MCP_URLS: http://app-a:3000/mcp,http://app-b:3000/mcp
+      TEST_MAILPIT_URL: http://mailpit:8025
+      TEST_JWT_PRIVATE_KEY_FILE: /fixtures/runner/jwt-private.jwk
+      TEST_PGP_PRIVATE_KEY_FILE: /fixtures/runner/recipient-private.asc
+      TEST_DATABASE_URL_FILE: /fixtures/runner/database-admin-url
+      NODE_EXTRA_CA_CERTS: /fixtures/app/ca.crt
+    volumes:
+      - app-fixtures:/fixtures/app:ro
+      - runner-fixtures:/fixtures/runner:ro
+    depends_on:
+      app-a: { condition: service_healthy }
+      app-b: { condition: service_healthy }
+
+networks:
+  test:
+    internal: true
+
+volumes:
+  app-fixtures:
+  smtp-fixtures:
+  auth-fixtures:
+  postgres-fixtures:
+  runner-fixtures:
+  postgres-data:

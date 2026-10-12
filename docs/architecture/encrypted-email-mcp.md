@@ -1,6 +1,6 @@
 # Encrypted self-email MCP architecture
 
-- **Status:** Design proposal; software implementation has not started.
+- **Status:** First implementation pass exists; live acceptance remains open.
 - **Decision record date:** 2026-10-11.
 - **Owner and intended user:** Ryan Anderson.
 
@@ -9,10 +9,19 @@ sending encrypted notes to the owner's Proton mailbox. It records requirements
 confirmed during design, recommended technical decisions, their consequences,
 and the evidence required before a future service can be enabled.
 
-Approval of the documentation task authorizes this document and its README link
-only. It does not authorize application development, dependency installation,
-database changes, infrastructure provisioning, DNS changes, or email submission.
-All interfaces and runtime behavior below are proposed, not implemented.
+The owner subsequently authorized the first software implementation. The
+repository now includes the MCP tools, owner and scope checks, in-memory
+PGP/MIME encryption, bounded SMTP submission, PostgreSQL metadata, migrations,
+and local/CI verification tooling. These files do not establish that production
+resources have been provisioned or that live delivery works.
+
+The original ADRs and their recommendation status are retained as the decision
+record, including their original planning language. Use the
+[setup guide](../setup/vercel.md) for the implemented configuration and remaining
+operational steps. Live Descope login from both clients, Vercel hosting and DNS,
+the owner's actual key, Proton entitlement, and Inbox/Sent behavior remain
+acceptance gates. No claim of live verification follows from a successful build
+or local fixture test.
 
 ## Purpose and scope
 
@@ -323,8 +332,9 @@ otherwise valid subject.
 
 ## Proposed public interfaces
 
-These are design contracts for later implementation, not currently callable
-tools. Runtime input validation must reject unknown fields.
+These contracts guide the implementation and its acceptance tests. Production
+readiness remains subject to the acceptance gates above. Runtime input
+validation must reject unknown fields.
 
 | Tool | Inputs | Result |
 | --- | --- | --- |
@@ -784,12 +794,12 @@ are claimed to have run as part of writing this document.
 | Authentication provider | The owner selected Descope MCP Auth through Vercel Marketplace. It is not configured. | Verify the actual offer and quotas, owner identity, resource compatibility, and both client flows. |
 | PostgreSQL hosting | Owner authorized reuse; the existing Vercel wedding project was confirmed during research. Storage integrations could not be inspected with the connector's permissions. | Identify the production service and supported isolation model without exposing credentials. Local development configuration is not proof of production setup. |
 | Domain configuration | Desired endpoint is confirmed; DNS readiness was not established. | Verify records and certificate using the actual deployment values. |
-| Capacity and recovery | Retention and failure behavior are proposed. | Confirm limits, database privileges, capacity policy, and coordinated restore procedure. |
-| Delivery and client behavior | No application exists and no mail was sent. | Complete the acceptance criteria above using the later implementation. |
-| Engineering verification | Docker test topology, test tools, CI checks, and Dependabot policy are documented; no such files or checks exist yet. | Implement and run the authored workflow, configure the repository's required check and security-update settings, and record actual results. |
+| Capacity and recovery | Metadata retention, admission limits, and failure handling are implemented; operational recovery is not proven. | Confirm limits, database privileges, capacity policy, and coordinated restore procedure. |
+| Delivery and client behavior | Application code exists; live provider and client behavior remain unverified. | Complete the acceptance criteria above using the configured deployment and owner's actual key. |
+| Engineering verification | Docker topology, test tools, CI workflow, and Dependabot configuration exist. Their presence is not a record of passing checks. | Run the authored workflow, configure the repository's required check and security-update settings, and record actual results. |
 
 The linked vendor documentation was researched for this design on 2026-10-11.
 It supports feasibility, not account-specific readiness. Recheck changing
 product capabilities, plan requirements, library support, and client behavior
-before implementation. Unresolved prerequisites are not implemented features or
+before production enablement. Unresolved prerequisites are not implemented features or
 permission to provision their proposed solutions.

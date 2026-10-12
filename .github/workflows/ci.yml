@@ -1,0 +1,143 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  merge_group:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: package.json
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm format:check
+      - run: pnpm lint
+      - run: pnpm typecheck
+
+  unit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: package.json
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test:unit
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: unit-coverage-test-output
+          path: coverage
+          retention-days: 7
+          if-no-files-found: warn
+
+  integration:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      TEST_COMPOSE_PROJECT: email-mcp-ci-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: package.json
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Prepare pinned dependencies and actual production image
+        run: pnpm test:integration prepare
+      - name: Scan production image
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
+        with:
+          version: v0.75.0
+          image-ref: ${{ env.TEST_COMPOSE_PROJECT }}-production
+          format: table
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+          output: image-scan.txt
+      - name: Test the scanned image without network pulls or rebuilding
+        run: pnpm test:integration run
+      - name: Remove only this run's disposable resources
+        if: always()
+        run:
+          docker compose --project-name "$TEST_COMPOSE_PROJECT" --env-file /dev/null -f
+          compose.yaml down --volumes --remove-orphans --timeout 5
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: image-scan-test-output
+          path: image-scan.txt
+          retention-days: 7
+          if-no-files-found: warn
+
+  dependency-audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@f40ffcd9367d9f12939873eb1018b921a783ffaa # v4
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version-file: package.json
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm audit:dependencies
+      - name: Review public pull-request dependency changes
+        if: ${{ github.event_name == 'pull_request' && !github.event.repository.private }}
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: high
+          comment-summary-in-pr: never
+      - name: Record unavailable optional private-repository review
+        if: ${{ github.event_name == 'pull_request' && github.event.repository.private }}
+        run:
+          echo 'Optional dependency review is not assumed available for private
+          repositories; the complete pnpm audit remains required.' >>
+          "$GITHUB_STEP_SUMMARY"
+
+  required:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    needs: [quality, unit, integration, dependency-audit]
+    if: always()
+    steps:
+      - name: Require every validation job to succeed
+        env:
+          QUALITY: ${{ needs.quality.result }}
+          UNIT: ${{ needs.unit.result }}
+          INTEGRATION: ${{ needs.integration.result }}
+          DEPENDENCY_AUDIT: ${{ needs.dependency-audit.result }}
+        run: |
+          for result in "$QUALITY" "$UNIT" "$INTEGRATION" "$DEPENDENCY_AUDIT"; do
+            if [ "$result" != success ]; then
+              echo "A required validation job did not succeed: $result"
+              exit 1
+            fi
+          done

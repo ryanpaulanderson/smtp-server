@@ -1,0 +1,57 @@
+{
+  "name": "encrypted-email-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "packageManager": "pnpm@10.34.6",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint . && node --import tsx scripts/check-docs.ts",
+    "typecheck": "next typegen && tsc --noEmit",
+    "test:unit": "vitest run --project unit --coverage",
+    "test:integration": "node --import tsx scripts/test-integration.ts",
+    "test:integration:run": "vitest run --project integration",
+    "db:migrate": "node --import tsx scripts/migrate.ts",
+    "audit:dependencies": "pnpm audit --audit-level high",
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test:unit && pnpm test:integration"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/server": "2.3.1",
+    "jose": "6.2.12",
+    "mcp-handler": "2.3.0",
+    "next": "16.4.0",
+    "nodemailer": "10.1.0",
+    "openpgp": "6.3.2",
+    "pg": "8.23.1",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "zod": "4.6.6"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/sdk": "1.32.1",
+    "@types/node": "^24.0.0",
+    "@types/mailparser": "3.9.0",
+    "@types/pg": "^8.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@types/smtp-server": "3.5.13",
+    "@vitest/coverage-v8": "5.0.3",
+    "eslint": "10.12.0",
+    "mailparser": "^3.9.0",
+    "markdownlint": "0.41.1",
+    "prettier": "^3.8.0",
+    "smtp-server": "^3.17.0",
+    "tsx": "^4.21.0",
+    "typescript": "~6.0.0",
+    "typescript-eslint": "8.71.1",
+    "vitest": "5.0.3",
+    "yaml": "^2.8.0"
+  }
+}

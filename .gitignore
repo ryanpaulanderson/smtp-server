@@ -218,3 +218,16 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Node.js build outputs and local configuration
+node_modules/
+.next/
+coverage/
+test-results/
+*.tsbuildinfo
+.env.*
+!.env.example
+.vercel/
+*.asc
+*.pem
+*.key

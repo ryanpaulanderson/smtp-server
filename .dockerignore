@@ -1,0 +1,14 @@
+.git
+.next
+node_modules
+coverage
+test-results
+.env*
+!.env.example
+*.log
+.DS_Store
+.vercel
+*.asc
+*.pem
+*.key
+*.tsbuildinfo
