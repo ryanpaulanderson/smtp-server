@@ -57,6 +57,16 @@ The base topology exposes no host ports and uses an internal network. Automated 
 their unique project name and cleanup command if a run is interrupted. Never add
 production credentials to these fixtures.
 
+The disposable database uses PostgreSQL 18 with its named data volume mounted at
+`/var/lib/postgresql`. Existing PostgreSQL 17 fixture volumes cannot be reused directly.
+If you previously started `email-mcp-local`, run the cleanup command above before starting
+the updated topology. This deletes only that project's disposable test data and captured
+mail; never use it against a database containing data you need to retain.
+
+Docker Node major updates are excluded from Dependabot because the build image, production
+image, package engine, and hosting configuration must agree on Node.js 24. Review a
+runtime migration as one coordinated change; minor and patch updates remain enabled.
+
 ## Operation and configuration
 
 The service exposes `send_encrypted_email` and `get_email_send_status` at `/mcp`. Each
