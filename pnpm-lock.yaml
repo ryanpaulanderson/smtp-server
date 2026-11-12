@@ -21,8 +21,8 @@ importers:
         specifier: 16.4.2
         version: 16.4.2(@types/node@24.19.2)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       nodemailer:
-        specifier: 10.1.4
-        version: 10.1.4
+        specifier: 10.1.5
+        version: 10.1.5
       openpgp:
         specifier: 6.3.2
         version: 6.3.2
@@ -1634,8 +1634,8 @@ packages:
     resolution: {integrity: sha512-fXW8AulB25aOTuwfRYV6lqHyfz2VM4rr4SGXH03mE7x5znEUpzL5mu6anARUpZN7744Ziwkmr4AxSLPJsBQspg==}
     engines: {node: '>=20.0.0'}
 
-  nodemailer@10.1.4:
-    resolution: {integrity: sha512-EsMnOR2oRv4LGnWvHgcVYkkQ4O2j8KO4WTw6l+PHR4sOXo8SAgIraxtEnGDmotjbhv0hDsu3IuDIFZm8iXwO4A==}
+  nodemailer@10.1.5:
+    resolution: {integrity: sha512-lftc1Fxos2mPXHChDaCtkyD9umvlLw1iMREXgXv6LAaJycVzJ8GcpE90o02B+AqnICq8zy8gzo8FrKEzXZhlGg==}
     engines: {node: '>=20.0.0'}
 
   nodemailer@10.5.0:
@@ -3627,7 +3627,7 @@ snapshots:
 
   nodemailer@10.1.0: {}
 
-  nodemailer@10.1.4: {}
+  nodemailer@10.1.5: {}
 
   nodemailer@10.5.0: {}
 
