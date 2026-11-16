@@ -21,8 +21,8 @@ importers:
         specifier: 16.4.2
         version: 16.4.2(@types/node@24.19.2)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       nodemailer:
-        specifier: 10.1.4
-        version: 10.1.4
+        specifier: 10.5.0
+        version: 10.5.0
       openpgp:
         specifier: 6.3.2
         version: 6.3.2
@@ -712,8 +712,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@rolldown/pluginutils@1.1.0':
-    resolution: {integrity: sha512-K+NU2HDCEem4sClgHH4ZZXwdJeNFkJo+hRk479DIwdIviAPN2hFJH1KHHwg8CxHQXvi0M5XY4deTXINfIiSG6w==}
+  '@rolldown/pluginutils@1.1.1':
+    resolution: {integrity: sha512-glFIJDvLNDtJhT9qrMFWLPbvS+skxgt4L0K8Ei2YtnhPysAJnsI7nyxSJxKj4ADeKX0OLjC4ntRkwpLOoS3rwA==}
 
   '@selderee/plugin-htmlparser2@0.12.0':
     resolution: {integrity: sha512-oELmoyA6ML9jDRMV3kgcMQFKxUfBU0yFVn6yTctVaLT5ygXnxH52I3TZEgV9EhXJC68/uFvE5Daj1/25c0Xa/A==}
@@ -1632,10 +1632,6 @@ packages:
 
   nodemailer@10.1.0:
     resolution: {integrity: sha512-fXW8AulB25aOTuwfRYV6lqHyfz2VM4rr4SGXH03mE7x5znEUpzL5mu6anARUpZN7744Ziwkmr4AxSLPJsBQspg==}
-    engines: {node: '>=20.0.0'}
-
-  nodemailer@10.1.4:
-    resolution: {integrity: sha512-EsMnOR2oRv4LGnWvHgcVYkkQ4O2j8KO4WTw6l+PHR4sOXo8SAgIraxtEnGDmotjbhv0hDsu3IuDIFZm8iXwO4A==}
     engines: {node: '>=20.0.0'}
 
   nodemailer@10.5.0:
@@ -2560,7 +2556,7 @@ snapshots:
   '@rolldown/binding-win32-x64-msvc@1.2.19':
     optional: true
 
-  '@rolldown/pluginutils@1.1.0': {}
+  '@rolldown/pluginutils@1.1.1': {}
 
   '@selderee/plugin-htmlparser2@0.12.0(selderee@0.12.0)':
     dependencies:
@@ -3627,8 +3623,6 @@ snapshots:
 
   nodemailer@10.1.0: {}
 
-  nodemailer@10.1.4: {}
-
   nodemailer@10.5.0: {}
 
   object-assign@4.1.1: {}
@@ -3802,7 +3796,7 @@ snapshots:
   rolldown@1.2.19:
     dependencies:
       '@oxc-project/types': 0.156.0
-      '@rolldown/pluginutils': 1.1.0
+      '@rolldown/pluginutils': 1.1.1
     optionalDependencies:
       '@rolldown/binding-android-arm-eabi': 1.2.19
       '@rolldown/binding-android-arm64': 1.2.19
