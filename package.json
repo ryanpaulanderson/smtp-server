@@ -47,7 +47,7 @@
     "mailparser": "^3.12.4",
     "markdownlint": "0.42.1",
     "prettier": "^3.8.0",
-    "smtp-server": "^3.17.0",
+    "smtp-server": "^3.21.4",
     "tsx": "^4.21.0",
     "typescript": "~6.0.0",
     "typescript-eslint": "8.72.0",
